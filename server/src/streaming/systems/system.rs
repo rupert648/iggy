@@ -13,10 +13,12 @@ use sled::Db;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
-use tokio::fs::create_dir;
+use tokio::fs::{create_dir, File};
 use tokio::sync::RwLock;
 use tokio::time::Instant;
 use tracing::{info, trace};
+use async_zip::tokio::write::ZipFileWriter;
+use async_zip::{Compression, ZipEntryBuilder};
 
 #[derive(Debug)]
 pub struct System {
@@ -150,5 +152,27 @@ impl System {
                 }
             }
         }
+    }
+
+    pub async fn create_snapshot_file(&self) -> Result<String, Error> {
+        let file_name = format!(
+            "{}/snapshot-{}.zip",
+            self.config.get_system_path(),
+            chrono::Utc::now().timestamp()
+        );
+
+        let mut file = File::create(file_name.clone()).await?;
+        let mut writer = ZipFileWriter::with_tokio(&mut file);
+
+        let data = b"This is an example file.";
+        let builder = ZipEntryBuilder::new("bar.txt".into(), Compression::Deflate);
+
+        // TODO: warnings
+        writer.write_entry_whole(builder, data).await;
+        writer.close().await;
+
+        println!("Zip file created successfully!");
+        
+        Ok(file_name)
     }
 }

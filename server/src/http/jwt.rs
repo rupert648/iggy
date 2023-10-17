@@ -534,5 +534,7 @@ fn should_skip_auth(path: &str) -> bool {
             | "/users/login"
             | "/users/refresh-token"
             | "/personal-access-tokens/login"
+            // TODO: remove
+            | "/snapshot"
     )
 }
