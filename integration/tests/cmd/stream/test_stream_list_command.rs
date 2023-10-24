@@ -1,38 +1,13 @@
-use std::fmt::{Display, Formatter, Result};
-
-use crate::cmd::common::{IggyCmdCommand, IggyCmdTest, IggyCmdTestCase};
+use crate::cmd::common::{
+    IggyCmdCommand, IggyCmdTest, IggyCmdTestCase, OutputFormat, TestHelpCmd, CLAP_INDENT,
+    USAGE_PREFIX,
+};
 use assert_cmd::assert::Assert;
 use async_trait::async_trait;
 use iggy::client::Client;
 use iggy::streams::create_stream::CreateStream;
 use predicates::str::{contains, starts_with};
-use serial_test::serial;
-
-enum OutputFormat {
-    Default,
-    List,
-    Table,
-}
-
-impl Display for OutputFormat {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self {
-            Self::Default => write!(f, "table"),
-            Self::List => write!(f, "list"),
-            Self::Table => write!(f, "table"),
-        }
-    }
-}
-
-impl OutputFormat {
-    fn to_args(&self) -> Vec<&str> {
-        match self {
-            Self::Default => vec![],
-            Self::List => vec!["--list-mode", "list"],
-            Self::Table => vec!["--list-mode", "table"],
-        }
-    }
-}
+use serial_test::parallel;
 
 struct TestStreamListCmd {
     stream_id: u32,
@@ -88,7 +63,7 @@ impl IggyCmdTestCase for TestStreamListCmd {
 }
 
 #[tokio::test]
-#[serial]
+#[parallel]
 pub async fn should_be_successful() {
     let mut iggy_cmd_test = IggyCmdTest::default();
 
@@ -112,6 +87,61 @@ pub async fn should_be_successful() {
             3,
             String::from("misc"),
             OutputFormat::Table,
+        ))
+        .await;
+}
+
+#[tokio::test]
+#[parallel]
+pub async fn should_help_match() {
+    let mut iggy_cmd_test = IggyCmdTest::default();
+
+    iggy_cmd_test
+        .execute_test_for_help_command(TestHelpCmd::new(
+            vec!["stream", "list", "--help"],
+            format!(
+                r#"List all streams
+
+Examples:
+ iggy stream list
+ iggy stream list --list-mode table
+ iggy stream list -l table
+
+{USAGE_PREFIX} stream list [OPTIONS]
+
+Options:
+  -l, --list-mode <LIST_MODE>
+          List mode (table or list)
+{CLAP_INDENT}
+          [default: table]
+          [possible values: table, list]
+
+  -h, --help
+          Print help (see a summary with '-h')
+"#,
+            ),
+        ))
+        .await;
+}
+
+#[tokio::test]
+#[parallel]
+pub async fn should_short_help_match() {
+    let mut iggy_cmd_test = IggyCmdTest::default();
+
+    iggy_cmd_test
+        .execute_test_for_help_command(TestHelpCmd::new(
+            vec!["stream", "list", "-h"],
+            format!(
+                r#"List all streams
+
+{USAGE_PREFIX} stream list [OPTIONS]
+
+Options:
+  -l, --list-mode <LIST_MODE>  List mode (table or list) [default: table] [possible values: table, list]
+  -h, --help                   Print help (see more with '--help')
+"#,
+            ),
         ))
         .await;
 }

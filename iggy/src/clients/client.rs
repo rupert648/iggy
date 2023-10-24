@@ -59,6 +59,7 @@ use crate::users::logout_user::LogoutUser;
 use crate::users::update_permissions::UpdatePermissions;
 use crate::users::update_user::UpdateUser;
 use crate::utils::crypto::Encryptor;
+use async_dropper::AsyncDrop;
 use async_trait::async_trait;
 use bytes::Bytes;
 use flume::{Receiver, Sender};
@@ -546,12 +547,12 @@ impl PersonalAccessTokenClient for IggyClient {
 
 #[async_trait]
 impl Client for IggyClient {
-    async fn connect(&mut self) -> Result<(), Error> {
-        self.client.write().await.connect().await
+    async fn connect(&self) -> Result<(), Error> {
+        self.client.read().await.connect().await
     }
 
-    async fn disconnect(&mut self) -> Result<(), Error> {
-        self.client.write().await.disconnect().await
+    async fn disconnect(&self) -> Result<(), Error> {
+        self.client.read().await.disconnect().await
     }
 }
 
@@ -759,5 +760,12 @@ impl ConsumerGroupClient for IggyClient {
 
     async fn leave_consumer_group(&self, command: &LeaveConsumerGroup) -> Result<(), Error> {
         self.client.read().await.leave_consumer_group(command).await
+    }
+}
+
+#[async_trait]
+impl AsyncDrop for IggyClient {
+    async fn async_drop(&mut self) {
+        let _ = self.client.read().await.logout_user(&LogoutUser {}).await;
     }
 }

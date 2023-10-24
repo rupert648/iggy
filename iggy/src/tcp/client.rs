@@ -1,4 +1,4 @@
-use crate::binary::binary_client::BinaryClient;
+use crate::binary::binary_client::{BinaryClient, ClientState};
 use crate::client::Client;
 use crate::error::Error;
 use crate::tcp::config::TcpClientConfig;
@@ -25,8 +25,9 @@ const NAME: &str = "Iggy";
 #[derive(Debug)]
 pub struct TcpClient {
     pub(crate) server_address: SocketAddr,
-    pub(crate) stream: Option<Mutex<Box<dyn ConnectionStream>>>,
+    pub(crate) stream: Mutex<Option<Box<dyn ConnectionStream>>>,
     pub(crate) config: Arc<TcpClientConfig>,
+    pub(crate) state: Mutex<ClientState>,
 }
 
 unsafe impl Send for TcpClient {}
@@ -104,7 +105,11 @@ impl Default for TcpClient {
 
 #[async_trait]
 impl Client for TcpClient {
-    async fn connect(&mut self) -> Result<(), Error> {
+    async fn connect(&self) -> Result<(), Error> {
+        if self.get_state().await == ClientState::Connected {
+            return Ok(());
+        }
+
         let tls_enabled = self.config.tls_enabled;
         let mut retry_count = 0;
         let connection_stream: Box<dyn ConnectionStream>;
@@ -158,7 +163,8 @@ impl Client for TcpClient {
             break;
         }
 
-        self.stream = Some(Mutex::new(connection_stream));
+        self.stream.lock().await.replace(connection_stream);
+        self.set_state(ClientState::Connected).await;
 
         info!(
             "{} client has connected to server: {}",
@@ -168,9 +174,14 @@ impl Client for TcpClient {
         Ok(())
     }
 
-    async fn disconnect(&mut self) -> Result<(), Error> {
+    async fn disconnect(&self) -> Result<(), Error> {
+        if self.get_state().await == ClientState::Disconnected {
+            return Ok(());
+        }
+
         info!("{} client is disconnecting from server...", NAME);
-        self.stream = None;
+        self.set_state(ClientState::Disconnected).await;
+        self.stream.lock().await.take();
         info!("{} client has disconnected from server.", NAME);
         Ok(())
     }
@@ -178,8 +189,21 @@ impl Client for TcpClient {
 
 #[async_trait]
 impl BinaryClient for TcpClient {
+    async fn get_state(&self) -> ClientState {
+        *self.state.lock().await
+    }
+
+    async fn set_state(&self, state: ClientState) {
+        *self.state.lock().await = state;
+    }
+
     async fn send_with_response(&self, command: u32, payload: &[u8]) -> Result<Vec<u8>, Error> {
-        if let Some(stream) = &self.stream {
+        if self.get_state().await == ClientState::Disconnected {
+            return Err(Error::NotConnected);
+        }
+
+        let mut stream = self.stream.lock().await;
+        if let Some(stream) = stream.as_mut() {
             let payload_length = payload.len() + 4;
             let mut buffer = Vec::with_capacity(REQUEST_INITIAL_BYTES_LENGTH + payload_length);
             #[allow(clippy::cast_possible_truncation)]
@@ -187,7 +211,6 @@ impl BinaryClient for TcpClient {
             buffer.put_u32_le(command);
             buffer.extend(payload);
 
-            let mut stream = stream.lock().await;
             trace!("Sending a TCP request...");
             stream.write(&buffer).await?;
             trace!("Sent a TCP request, waiting for a response...");
@@ -232,7 +255,8 @@ impl TcpClient {
         Ok(Self {
             config,
             server_address,
-            stream: None,
+            stream: Mutex::new(None),
+            state: Mutex::new(ClientState::Disconnected),
         })
     }
 

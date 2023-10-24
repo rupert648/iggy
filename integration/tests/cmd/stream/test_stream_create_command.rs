@@ -1,10 +1,10 @@
-use crate::cmd::common::{IggyCmdCommand, IggyCmdTest, IggyCmdTestCase};
+use crate::cmd::common::{IggyCmdCommand, IggyCmdTest, IggyCmdTestCase, TestHelpCmd, USAGE_PREFIX};
 use assert_cmd::assert::Assert;
 use async_trait::async_trait;
 use iggy::streams::get_stream::GetStream;
 use iggy::{client::Client, identifier::Identifier};
 use predicates::str::diff;
-use serial_test::serial;
+use serial_test::parallel;
 
 struct TestStreamCreateCmd {
     stream_id: u32,
@@ -53,7 +53,7 @@ impl IggyCmdTestCase for TestStreamCreateCmd {
 }
 
 #[tokio::test]
-#[serial]
+#[parallel]
 pub async fn should_be_successful() {
     let stream_id = 123;
     let mut iggy_cmd_test = IggyCmdTest::default();
@@ -61,5 +61,63 @@ pub async fn should_be_successful() {
     iggy_cmd_test.setup().await;
     iggy_cmd_test
         .execute_test(TestStreamCreateCmd::new(stream_id, String::from("main")))
+        .await;
+}
+
+#[tokio::test]
+#[parallel]
+pub async fn should_help_match() {
+    let mut iggy_cmd_test = IggyCmdTest::default();
+
+    iggy_cmd_test
+        .execute_test_for_help_command(TestHelpCmd::new(
+            vec!["stream", "create", "--help"],
+            format!(
+                r#"Create stream with given ID and name
+
+Examples:
+ iggy stream create 1 prod
+ iggy stream create 2 test
+
+{USAGE_PREFIX} stream create <STREAM_ID> <NAME>
+
+Arguments:
+  <STREAM_ID>
+          Stream ID to create topic
+
+  <NAME>
+          Name of the stream
+
+Options:
+  -h, --help
+          Print help (see a summary with '-h')
+"#,
+            ),
+        ))
+        .await;
+}
+
+#[tokio::test]
+#[parallel]
+pub async fn should_short_help_match() {
+    let mut iggy_cmd_test = IggyCmdTest::default();
+
+    iggy_cmd_test
+        .execute_test_for_help_command(TestHelpCmd::new(
+            vec!["stream", "create", "-h"],
+            format!(
+                r#"Create stream with given ID and name
+
+{USAGE_PREFIX} stream create <STREAM_ID> <NAME>
+
+Arguments:
+  <STREAM_ID>  Stream ID to create topic
+  <NAME>       Name of the stream
+
+Options:
+  -h, --help  Print help (see more with '--help')
+"#,
+            ),
+        ))
         .await;
 }

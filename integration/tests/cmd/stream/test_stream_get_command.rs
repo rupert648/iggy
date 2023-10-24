@@ -1,10 +1,13 @@
-use crate::cmd::common::{IggyCmdCommand, IggyCmdTest, IggyCmdTestCase, TestStreamId};
+use crate::cmd::common::{
+    IggyCmdCommand, IggyCmdTest, IggyCmdTestCase, TestHelpCmd, TestStreamId, CLAP_INDENT,
+    USAGE_PREFIX,
+};
 use assert_cmd::assert::Assert;
 use async_trait::async_trait;
 use iggy::client::Client;
 use iggy::streams::create_stream::CreateStream;
 use predicates::str::{contains, starts_with};
-use serial_test::serial;
+use serial_test::parallel;
 
 struct TestStreamGetCmd {
     stream_id: u32,
@@ -72,7 +75,7 @@ impl IggyCmdTestCase for TestStreamGetCmd {
 }
 
 #[tokio::test]
-#[serial]
+#[parallel]
 pub async fn should_be_successful() {
     let mut iggy_cmd_test = IggyCmdTest::default();
 
@@ -89,6 +92,64 @@ pub async fn should_be_successful() {
             2,
             String::from("testing"),
             TestStreamId::Numeric,
+        ))
+        .await;
+}
+
+#[tokio::test]
+#[parallel]
+pub async fn should_help_match() {
+    let mut iggy_cmd_test = IggyCmdTest::default();
+
+    iggy_cmd_test
+        .execute_test_for_help_command(TestHelpCmd::new(
+            vec!["stream", "get", "--help"],
+            format!(
+                r#"Get details of a single stream with given ID
+
+Stream ID can be specified as a stream name or ID
+
+Examples:
+ iggy stream get 1
+ iggy stream get test
+
+{USAGE_PREFIX} stream get <STREAM_ID>
+
+Arguments:
+  <STREAM_ID>
+          Stream ID to get
+{CLAP_INDENT}
+          Stream ID can be specified as a stream name or ID
+
+Options:
+  -h, --help
+          Print help (see a summary with '-h')
+"#,
+            ),
+        ))
+        .await;
+}
+
+#[tokio::test]
+#[parallel]
+pub async fn should_short_help_match() {
+    let mut iggy_cmd_test = IggyCmdTest::default();
+
+    iggy_cmd_test
+        .execute_test_for_help_command(TestHelpCmd::new(
+            vec!["stream", "get", "-h"],
+            format!(
+                r#"Get details of a single stream with given ID
+
+{USAGE_PREFIX} stream get <STREAM_ID>
+
+Arguments:
+  <STREAM_ID>  Stream ID to get
+
+Options:
+  -h, --help  Print help (see more with '--help')
+"#,
+            ),
         ))
         .await;
 }
