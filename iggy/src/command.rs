@@ -24,6 +24,7 @@ use crate::streams::update_stream::UpdateStream;
 use crate::system::get_client::GetClient;
 use crate::system::get_clients::GetClients;
 use crate::system::get_me::GetMe;
+use crate::system::get_snapshot::GetSnapshot;
 use crate::system::get_stats::GetStats;
 use crate::system::ping::Ping;
 use crate::topics::create_topic::CreateTopic;
@@ -48,6 +49,8 @@ pub const PING: &str = "ping";
 pub const PING_CODE: u32 = 1;
 pub const GET_STATS: &str = "stats";
 pub const GET_STATS_CODE: u32 = 10;
+pub const GET_SNAPSHOT: &str = "snapshot";
+pub const GET_SNAPSHOT_CODE: u32 = 11;
 pub const GET_ME: &str = "me";
 pub const GET_ME_CODE: u32 = 20;
 pub const GET_CLIENT: &str = "client.get";
@@ -129,6 +132,7 @@ pub const LEAVE_CONSUMER_GROUP_CODE: u32 = 605;
 pub enum Command {
     Ping(Ping),
     GetStats(GetStats),
+    GetSnapshot(GetSnapshot),
     GetMe(GetMe),
     GetClient(GetClient),
     GetClients(GetClients),
@@ -176,6 +180,7 @@ impl BytesSerializable for Command {
         match self {
             Command::Ping(payload) => as_bytes(PING_CODE, &payload.as_bytes()),
             Command::GetStats(payload) => as_bytes(GET_STATS_CODE, &payload.as_bytes()),
+            Command::GetSnapshot(payload) => as_bytes(GET_SNAPSHOT_CODE, &payload.as_bytes()),
             Command::GetMe(payload) => as_bytes(GET_ME_CODE, &payload.as_bytes()),
             Command::GetClient(payload) => as_bytes(GET_CLIENT_CODE, &payload.as_bytes()),
             Command::GetClients(payload) => as_bytes(GET_CLIENTS_CODE, &payload.as_bytes()),
@@ -253,6 +258,7 @@ impl BytesSerializable for Command {
         match command {
             PING_CODE => Ok(Command::Ping(Ping::from_bytes(payload)?)),
             GET_STATS_CODE => Ok(Command::GetStats(GetStats::from_bytes(payload)?)),
+            GET_SNAPSHOT_CODE => Ok(Command::GetSnapshot(GetSnapshot::from_bytes(payload)?)),
             GET_ME_CODE => Ok(Command::GetMe(GetMe::from_bytes(payload)?)),
             GET_CLIENT_CODE => Ok(Command::GetClient(GetClient::from_bytes(payload)?)),
             GET_CLIENTS_CODE => Ok(Command::GetClients(GetClients::from_bytes(payload)?)),
@@ -420,6 +426,7 @@ impl Display for Command {
         match self {
             Command::Ping(_) => write!(formatter, "{PING}"),
             Command::GetStats(_) => write!(formatter, "{GET_STATS}"),
+            Command::GetSnapshot(_) => write!(formatter, "{GET_SNAPSHOT}"),
             Command::GetMe(_) => write!(formatter, "{GET_ME}"),
             Command::GetClient(payload) => write!(formatter, "{GET_CLIENT}|{payload}"),
             Command::GetClients(_) => write!(formatter, "{GET_CLIENTS}"),
@@ -509,6 +516,11 @@ mod tests {
             &Command::GetStats(GetStats::default()),
             GET_STATS_CODE,
             &GetStats::default(),
+        );
+        assert_serialized_as_bytes_and_deserialized_from_bytes(
+            &&Command::GetSnapshot(GetSnapshot::default()),
+            GET_SNAPSHOT_CODE,
+            &GetSnapshot::default(),
         );
         assert_serialized_as_bytes_and_deserialized_from_bytes(
             &Command::GetMe(GetMe::default()),

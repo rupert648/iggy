@@ -3,6 +3,7 @@ use iggy::client_error::ClientError;
 use iggy::system::get_client::GetClient;
 use iggy::system::get_clients::GetClients;
 use iggy::system::get_me::GetMe;
+use iggy::system::get_snapshot::GetSnapshot;
 use iggy::system::get_stats::GetStats;
 use iggy::system::ping::Ping;
 use tracing::info;
@@ -15,6 +16,12 @@ pub async fn ping(command: &Ping, client: &dyn Client) -> Result<(), ClientError
 pub async fn get_stats(command: &GetStats, client: &dyn Client) -> Result<(), ClientError> {
     let stats = client.get_stats(command).await?;
     info!("Stats: {:#?}", stats);
+    Ok(())
+}
+
+pub async fn get_snapshot(command: &GetSnapshot, client: &dyn Client) -> Result<(), ClientError> {
+    let snapshot = client.get_snapshot(command).await?;
+    info!("Snapshot: {:#?}", snapshot);
     Ok(())
 }
 

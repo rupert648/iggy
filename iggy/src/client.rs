@@ -33,6 +33,7 @@ use crate::streams::update_stream::UpdateStream;
 use crate::system::get_client::GetClient;
 use crate::system::get_clients::GetClients;
 use crate::system::get_me::GetMe;
+use crate::system::get_snapshot::GetSnapshot;
 use crate::system::get_stats::GetStats;
 use crate::system::ping::Ping;
 use crate::topics::create_topic::CreateTopic;
@@ -74,6 +75,7 @@ pub trait Client:
 #[async_trait]
 pub trait SystemClient {
     async fn get_stats(&self, command: &GetStats) -> Result<Stats, Error>;
+    async fn get_snapshot(&self, command: &GetSnapshot) -> Result<String, Error>;
     async fn get_me(&self, command: &GetMe) -> Result<ClientInfoDetails, Error>;
     async fn get_client(&self, command: &GetClient) -> Result<ClientInfoDetails, Error>;
     async fn get_clients(&self, command: &GetClients) -> Result<Vec<ClientInfo>, Error>;

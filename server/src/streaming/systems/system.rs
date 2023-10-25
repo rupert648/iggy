@@ -8,19 +8,16 @@ use crate::streaming::session::Session;
 use crate::streaming::storage::{SegmentStorage, SystemStorage};
 use crate::streaming::streams::stream::Stream;
 use crate::streaming::users::permissioner::Permissioner;
-use crate::streaming::systems::command_utils;
 use iggy::error::Error;
 use iggy::utils::crypto::{Aes256GcmEncryptor, Encryptor};
 use sled::Db;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
-use tokio::fs::{create_dir, File};
+use tokio::fs::create_dir;
 use tokio::sync::RwLock;
 use tokio::time::Instant;
 use tracing::{info, trace};
-use async_zip::tokio::write::ZipFileWriter;
-use async_zip::{Compression, ZipEntryBuilder};
 
 #[derive(Debug)]
 pub struct System {
@@ -167,38 +164,4 @@ impl System {
             }
         }
     }
-
-    pub async fn create_snapshot_file(&self) -> Result<String, Error> {
-        let file_name = format!(
-            "{}/snapshot-{}.zip",
-            self.config.get_system_path(),
-            chrono::Utc::now().timestamp()
-        );
-
-        let mut file = File::create(file_name.clone()).await?;
-        let mut writer = ZipFileWriter::with_tokio(&mut file);
-
-        // TODO: warnings
-
-        let ps_aux = command_utils::ps_aux().await?;
-        let ps_aux_builder = ZipEntryBuilder::new("ps_aux.txt".into(), Compression::Deflate);
-        writer.write_entry_whole(ps_aux_builder, &ps_aux).await;
-
-        let top = command_utils::top().await?;
-        let top_builder = ZipEntryBuilder::new("top_builder.txt".into(), Compression::Deflate);
-        writer.write_entry_whole(top_builder, &top).await;
-
-        let lsof = command_utils::lsof().await?;
-        println!("lsof: {:?}", lsof);
-        let lsof_builder = ZipEntryBuilder::new("lsof.txt".into(), Compression::Deflate);
-        writer.write_entry_whole(lsof_builder, &lsof).await;
-        
-        writer.close().await;
-
-        println!("Zip file created successfully!");
-        
-        Ok(file_name)
-    }
-
-    
 }

@@ -56,6 +56,9 @@ async fn try_handle(
         Command::GetStats(command) => {
             get_stats_handler::handle(command, sender, session, system).await
         }
+        Command::GetSnapshot(command) => {
+            get_snapshot_handler::handle(command, sender, session, system).await
+        }
         Command::GetMe(command) => get_me_handler::handle(command, sender, session, system).await,
         Command::GetClient(command) => {
             get_client_handler::handle(command, sender, session, system).await
