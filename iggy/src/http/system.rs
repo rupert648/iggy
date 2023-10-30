@@ -6,6 +6,7 @@ use crate::models::stats::Stats;
 use crate::system::get_client::GetClient;
 use crate::system::get_clients::GetClients;
 use crate::system::get_me::GetMe;
+use crate::system::get_snapshot::GetSnapshot;
 use crate::system::get_stats::GetStats;
 use crate::system::ping::Ping;
 use async_trait::async_trait;
@@ -13,6 +14,7 @@ use async_trait::async_trait;
 const PING: &str = "/ping";
 const CLIENTS: &str = "/clients";
 const STATS: &str = "/stats";
+const SNAPSHOT: &str = "/snapshot";
 
 #[async_trait]
 impl SystemClient for HttpClient {
@@ -20,6 +22,13 @@ impl SystemClient for HttpClient {
         let response = self.get(STATS).await?;
         let stats = response.json().await?;
         Ok(stats)
+    }
+
+    async fn get_snapshot(&self, _command: &GetSnapshot) -> Result<(), Error> {
+        let response = self.get(SNAPSHOT).await?;
+        // TODO: read response and write to file location
+
+        Ok(())
     }
 
     async fn get_me(&self, _command: &GetMe) -> Result<ClientInfoDetails, Error> {

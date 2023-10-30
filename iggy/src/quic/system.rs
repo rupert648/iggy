@@ -7,6 +7,7 @@ use crate::quic::client::QuicClient;
 use crate::system::get_client::GetClient;
 use crate::system::get_clients::GetClients;
 use crate::system::get_me::GetMe;
+use crate::system::get_snapshot::GetSnapshot;
 use crate::system::get_stats::GetStats;
 use crate::system::ping::Ping;
 use async_trait::async_trait;
@@ -15,6 +16,10 @@ use async_trait::async_trait;
 impl SystemClient for QuicClient {
     async fn get_stats(&self, command: &GetStats) -> Result<Stats, Error> {
         binary::system::get_stats(self, command).await
+    }
+
+    async fn get_snapshot(&self, command: &GetSnapshot) -> Result<(), Error> {
+        binary::system::get_snapshot(self, command).await
     }
 
     async fn get_me(&self, command: &GetMe) -> Result<ClientInfoDetails, Error> {

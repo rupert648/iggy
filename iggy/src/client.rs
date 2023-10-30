@@ -75,7 +75,7 @@ pub trait Client:
 #[async_trait]
 pub trait SystemClient {
     async fn get_stats(&self, command: &GetStats) -> Result<Stats, Error>;
-    async fn get_snapshot(&self, command: &GetSnapshot) -> Result<String, Error>;
+    async fn get_snapshot(&self, command: &GetSnapshot) -> Result<(), Error>;
     async fn get_me(&self, command: &GetMe) -> Result<ClientInfoDetails, Error>;
     async fn get_client(&self, command: &GetClient) -> Result<ClientInfoDetails, Error>;
     async fn get_clients(&self, command: &GetClients) -> Result<Vec<ClientInfo>, Error>;
