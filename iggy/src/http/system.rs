@@ -1,3 +1,5 @@
+use std::io::Cursor;
+
 use crate::client::SystemClient;
 use crate::error::Error;
 use crate::http::client::HttpClient;
@@ -10,6 +12,7 @@ use crate::system::get_snapshot::GetSnapshot;
 use crate::system::get_stats::GetStats;
 use crate::system::ping::Ping;
 use async_trait::async_trait;
+use tokio::fs;
 
 const PING: &str = "/ping";
 const CLIENTS: &str = "/clients";
@@ -24,9 +27,11 @@ impl SystemClient for HttpClient {
         Ok(stats)
     }
 
-    async fn get_snapshot(&self, _command: &GetSnapshot) -> Result<(), Error> {
+    async fn get_snapshot(&self, command: &GetSnapshot) -> Result<(), Error> {
         let response = self.get(SNAPSHOT).await?;
-        // TODO: read response and write to file location
+        let mut file = fs::File::create(command.file_save_location.clone()).await?;
+        let mut content = Cursor::new(response.bytes().await?);
+        tokio::io::copy(&mut content, &mut file).await?;
 
         Ok(())
     }

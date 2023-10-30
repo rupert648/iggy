@@ -24,6 +24,7 @@ pub async fn get_stats(client: &dyn BinaryClient, command: &GetStats) -> Result<
 
 pub async fn get_snapshot(client: &dyn BinaryClient, command: &GetSnapshot) -> Result<(), Error> {
     fail_if_not_authenticated(client).await?;
+    // TODO:
     client
         .send_with_response(GET_SNAPSHOT_CODE, &command.as_bytes())
         .await?;
